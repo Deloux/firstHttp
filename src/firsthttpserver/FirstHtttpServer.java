@@ -99,23 +99,64 @@ public class FirstHtttpServer {
 
         @Override
         public void handle(HttpExchange he) throws IOException {
+            String requestURI = he.getRequestURI().toString();
+            String fileName = requestURI.substring(requestURI.lastIndexOf("/") + 1);
             String contentFolder = "public/";
             File file = new File(contentFolder
-                    + "index.html");
-            byte[] bytesToSend = new byte[(int) file.length()];
-            try {
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-                bis.read(bytesToSend, 0, bytesToSend.length);
-            } catch (IOException ie) {
-                ie.printStackTrace();
+                    + fileName);
+            if (file.exists()) {
+                byte[] bytesToSend = new byte[(int) file.length()];
+                try {
+                    BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+                    bis.read(bytesToSend, 0, bytesToSend.length);
+                } catch (IOException ie) {
+                    ie.printStackTrace();
+                }
+                Headers h = he.getResponseHeaders();
+                switch (fileName.substring(fileName.lastIndexOf(".") + 1)) {
+                    case "html":
+                        h.add("Content-Type", "text/html");
+                        break;
+                    case "htm":
+                        h.add("Content-Type", "text/html");
+                        break;
+                    case "css":
+                        h.add("Content-Type", "text/css");
+                        break;
+                    case "pdf":
+                        h.add("Content-Type", "application/pdf");
+                        break;
+                    case "jpg":
+                        h.add("Content-Type", "image/jpeg");
+                        break;
+                    case "jar":
+                        h.add("Content-Type", "application/zip");
+                        break;
+                }
+                he.sendResponseHeaders(200, bytesToSend.length);
+                try (OutputStream os = he.getResponseBody()) {
+                    os.write(bytesToSend, 0, bytesToSend.length);
+                }
+            } else {
+                file = new File(contentFolder
+                        + "404.html");
+                byte[] bytesToSend = new byte[(int) file.length()];
+                try {
+                    BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+                    bis.read(bytesToSend, 0, bytesToSend.length);
+                } catch (IOException ie) {
+                    ie.printStackTrace();
+                }
+                Headers h = he.getResponseHeaders();
+                he.sendResponseHeaders(200, bytesToSend.length);
+                try (OutputStream os = he.getResponseBody()) {
+                    os.write(bytesToSend, 0, bytesToSend.length);
+                }
             }
-            he.sendResponseHeaders(200, bytesToSend.length);
-            try (OutputStream os = he.getResponseBody()) {
-                os.write(bytesToSend, 0, bytesToSend.length);
-            }
+
         }
     }
-    
+
     static class ParameterRequestHandler implements HttpHandler {
 
         @Override
@@ -128,20 +169,20 @@ public class FirstHtttpServer {
             sb.append("<meta charset='UTF-8'>\n");
             sb.append("</head>\n");
             sb.append("<body>\n");
-            
-            if(he.getRequestMethod().equals("GET")){
-                sb.append("<h1 style='display:block;margin:0 auto;'>Method: "+he.getRequestMethod()+"</h1>");
-                sb.append("Get-Parameters: "+he.getRequestURI().getQuery());
-            }else if(he.getRequestMethod().equals("POST")){
-                sb.append("<h1 style='display:block;margin:0 auto;'>Method: "+he.getRequestMethod()+"</h1>");
+
+            if (he.getRequestMethod().equals("GET")) {
+                sb.append("<h1 style='display:block;margin:0 auto;'>Method: " + he.getRequestMethod() + "</h1>");
+                sb.append("Get-Parameters: " + he.getRequestURI().getQuery());
+            } else if (he.getRequestMethod().equals("POST")) {
+                sb.append("<h1 style='display:block;margin:0 auto;'>Method: " + he.getRequestMethod() + "</h1>");
                 Scanner scan = new Scanner(he.getRequestBody());
-                while(scan.hasNext()){
-                    sb.append("Request body, with Post-parameters: "+scan.nextLine());
+                while (scan.hasNext()) {
+                    sb.append("Request body, with Post-parameters: " + scan.nextLine());
                 }
-            }else{
-                sb.append(he.getRequestMethod()+" not supported");
+            } else {
+                sb.append(he.getRequestMethod() + " not supported");
             }
-            
+
             sb.append("</body>\n");
             sb.append("</html>\n");
             String response = sb.toString();
